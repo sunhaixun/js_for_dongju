@@ -1,0 +1,190 @@
+<!doctype html>
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html;charset=utf-8"/>
+<title>calendar for dongju.zhou (wirtten by bravf @ 2013/2/17)</title>
+
+<style type="text/css">
+body{font:12px/1.5 'tahoma','arial','\5b8b\4f53';}
+table{border:1px solid #000; width:300px;}
+td{text-align:center; padding:2px 0;}
+</style>
+
+</head>
+<body></body>
+</html>
+
+
+<script>
+var doc = document;
+
+// dom helper
+var DomH = {};
+DomH.create = function (tag){
+    return doc.createElement(tag);
+};
+DomH._appendRemove = function (op){
+    return function (){
+        var args = Array.prototype.slice.call(arguments);
+        if (args.length <= 1) return;
+
+        var parent = args.shift();
+        for (var i=0; i<args.length; i++){
+            parent[op](args[i]);
+        }
+    };
+};
+DomH.append = DomH._appendRemove("appendChild");
+DomH.remove = DomH._appendRemove("removeChild");
+
+DomH.setContent = function (dom, content){
+    dom.innerHTML = content;
+    return dom;
+};
+DomH.setStyle = function (dom, styles){
+    for (var k in styles){
+        dom.style[k] = styles[k];
+    }
+};
+
+// calendar object
+var Calendar = function (){
+    this.init();
+};
+Calendar.prototype = {
+    init : function (){
+        this.renderUI();
+    },
+
+    renderUI : function (){
+        this.date = new Date();
+        this.wrapper = DomH.create("table");
+
+        // create head
+        var head = DomH.create("thead");
+
+        var control = this.renderControl();
+        var tr = DomH.create("tr");
+        for (var i=0; i<7; i++){
+            var td = DomH.create("td");
+            DomH.append(tr, DomH.setContent(td, "天一二三四五六".charAt(i) ) );
+        }
+
+        DomH.append(head, control, tr);
+        DomH.append(this.wrapper, head);
+        DomH.append(doc.body, this.wrapper);
+
+        this.renderBody();
+    },
+
+    renderControl : function (){
+        var me = this;
+        var date = this.date;
+        var tr = DomH.create("tr");
+
+        var prevBtn = DomH.create("td");
+        DomH.setContent(prevBtn, "&lt;");
+        DomH.setStyle(prevBtn, {"cursor":"pointer"});
+
+        var nextBtn = DomH.create("td");
+        DomH.setContent(nextBtn, "&gt;");
+        DomH.setStyle(nextBtn, {"cursor":"pointer"});
+
+        var timeDisplay = DomH.create("td");
+        timeDisplay.setAttribute("colspan", 5);
+
+        var fillTD = function (){
+            DomH.setContent(timeDisplay, date.getFullYear() + "年" + (date.getMonth()+1) + "月");
+        };
+
+        var rePaint = function (direction){
+            var y = date.getFullYear(), m = date.getMonth();
+            if (direction != "+"){
+                m -= 1;
+                if (m < 0){
+                    y -= 1;
+                    m = 11;
+                }
+            }
+            else {
+                m += 1;
+                if (m > 11){
+                    y += 1;
+                    m = 0;
+                }
+            }
+
+            date.setFullYear(y);
+            date.setMonth(m);
+            me.renderBody(date);
+            fillTD();
+        };
+        prevBtn.onclick = function (){
+            rePaint("-");
+        };
+        nextBtn.onclick = function (){
+            rePaint("+");
+        };
+
+        fillTD();
+        DomH.append(tr, prevBtn, timeDisplay, nextBtn);
+        return tr;
+    },
+
+    renderBody : function (date){
+        if (this.body) DomH.remove(this.wrapper, this.body);
+        var body = this.body = DomH.create("tbody");
+
+        date = date || new Date();
+        var y = date.getFullYear(), m = date.getMonth(), dateT;
+
+        // 当月多少天？
+        if (m + 1 > 11) dateT = new Date(y+1, 0, 0);
+        else dateT = new Date(y, m+1, 0);
+
+        var days = dateT.getDate();
+
+        // 当月第一天是周几？
+        dateT = new Date(y, m, 1);
+        var weekFirstDay = dateT.getDay();
+
+        // 高亮第几天？
+        var highlightDay = 1;
+        dateT = new Date();
+        if ( (dateT.getFullYear() == y) && (dateT.getMonth() == m) ) highlightDay = dateT.getDate();
+
+        var tds = [];
+        // 上个月的留白
+        for (var i=0; i<weekFirstDay; i++){
+            var td = DomH.create("td");
+            tds.push(td);
+        }
+        // 本月
+        for (var i=1; i<=days; i++){
+            var td = DomH.create("td");
+            DomH.setContent(td, i);
+            if (i == highlightDay) DomH.setStyle(td, {"backgroundColor":"#ADC2D5"});
+            tds.push(td);
+        }
+
+        // 需要多少行？
+        var trCount = Math.ceil(tds.length/7);
+
+        // 渲染输出
+        for (var i=0; i<trCount; i++){
+            var tr = DomH.create("tr");
+            for (var j=0; j<7; j++){
+                var td = tds.shift();
+                if (td) DomH.append(tr, td);
+            }
+            DomH.append(body, tr);
+        }
+
+        DomH.append(this.wrapper, body);
+    }
+};
+
+// test it
+new Calendar();
+
+</script>
