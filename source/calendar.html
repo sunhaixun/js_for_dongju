@@ -59,6 +59,7 @@ Calendar.prototype = {
 
     renderUI : function (){
         this.date = new Date();
+        this.date.setDate(1);
         this.wrapper = DomH.create("table");
 
         // create head
